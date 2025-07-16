@@ -1,0 +1,13 @@
+\begin{abstract}
+
+La detección temprana y precisa de las fases sísmicas P y S en registros sismológicos es una tarea crítica en la implementación de sistemas de alerta temprana ante terremotos (EEWS). La identificación manual de estas fases es laboriosa, propensa a errores y difícil de escalar, especialmente en regiones con alta actividad sísmica y baja densidad de estaciones. En este contexto, los modelos basados en aprendizaje profundo han demostrado ser una alternativa prometedora para automatizar esta tarea, destacando entre ellos el modelo \textit{EQTransformer}, una arquitectura basada en redes neuronales recurrentes y convolucionales con mecanismos de atención.
+
+La presente tesis propone una mejora al modelo \textit{EQTransformer} mediante la incorporación de una capa de multiatención jerárquica basada en \textit{Swin Transformer}, una arquitectura reciente y eficiente que permite capturar relaciones espaciales y temporales a múltiples escalas dentro de secuencias de datos. Esta modificación tiene como objetivo aumentar la capacidad del modelo para detectar patrones complejos en señales sísmicas, especialmente en escenarios de bajo nivel de señal o presencia de ruido.
+
+Se construyó un \textit{pipeline} completo de procesamiento, que incluye adquisición y preprocesamiento de señales, entrenamiento del modelo, identificación de fases sísmicas y evaluación de parámetros de evento. La arquitectura propuesta fue entrenada utilizando un conjunto de datos sísmicos reales, etiquetados con fases P y S, y fue validada con métricas estándar como precisión, sensibilidad y \textit{F1-score}. Además, se emplearon técnicas de interpretabilidad para analizar las regiones de la señal más relevantes para la predicción del modelo.
+
+Los resultados muestran que la incorporación del bloque \textit{Swin Transformer} mejora significativamente el rendimiento del modelo en comparación con la versión original de \textit{EQTransformer}, especialmente en señales ruidosas o con fases sísmicas poco claras. Asimismo, el modelo modificado mostró mayor robustez en generalización, lo cual es crucial para su aplicación en tiempo real en distintas regiones geográficas.
+
+Este trabajo contribuye al campo de la sismología computacional al ofrecer un enfoque más potente y flexible para la detección automática de fases sísmicas, y sienta las bases para futuras investigaciones en sistemas inteligentes de alerta temprana impulsados por modelos jerárquicos de atención.
+
+\end{abstract}

@@ -1,0 +1,202 @@
+\chapter{Marco Teorico}
+
+La detección precisa y oportuna de la onda P es uno de los pilares fundamentales para el desarrollo de sistemas de alerta temprana ante sismos (EEWS, por sus siglas en inglés). Históricamente, se ha recurrido a métodos clásicos como el algoritmo Short-Term Average / Long-Term Average (STA/LTA) y el Akaike Information Criterion (AIC) debido a su simplicidad, bajo costo computacional y rápida capacidad de respuesta. Estas características los han hecho adecuados para redes sísmicas de bajo presupuesto, estaciones en regiones aisladas o dispositivos de monitoreo con recursos limitados.
+
+En particular, el algoritmo STA/LTA, al basarse en la relación entre promedios móviles de corto y largo plazo, ofrece una estrategia intuitiva y de rápida implementación para identificar cambios abruptos en la señal sísmica. Recientes mejoras en su formulación han permitido extender su aplicabilidad a nuevas condiciones operativas, consolidándolo como un referente para contrastar enfoques más complejos. No obstante, su sensibilidad al ruido de fondo y a fluctuaciones bruscas en la amplitud puede resultar en altas tasas de falsos positivos, especialmente en contextos con baja relación señal-ruido (SNR). De forma similar, el método AIC, aunque útil en escenarios controlados, puede presentar dificultades para delimitar con precisión el inicio de la onda P en condiciones adversas \cite{kalkan2016automatic, shang2018enhancing}.
+
+Frente a estas limitaciones, el campo ha evolucionado hacia técnicas más sofisticadas basadas en aprendizaje automático y aprendizaje profundo. Métodos como el selector basado en Descomposición Modal Empírica (EMD), redes neuronales artificiales (RNA), y diversas arquitecturas convolucionales (CNN) han demostrado una mayor capacidad para extraer características relevantes de los registros sísmicos. En particular, modelos como XTF-CNN, CPIC, y PhaseNet han conseguido mejoras sustanciales en la detección automática de fases sísmicas, gracias a su capacidad para aprender representaciones jerárquicas y contextuales de la señal \cite{zhu2019deep, bi2021explainable}.
+
+La evolución de estos modelos ha llevado al desarrollo de arquitecturas híbridas como EQTransformer, que combina capas convolucionales con redes LSTM bidireccionales y mecanismos de atención, permitiendo un enfoque unificado para la detección y el "picking" de fases. A pesar de su alta precisión, su implementación práctica puede verse limitada por requerimientos computacionales elevados, lo que restringe su uso en dispositivos embebidos o redes distribuidas de bajo consumo.
+
+En este contexto, el modelo TransQuake surge como una propuesta innovadora basada en Transformers. Esta arquitectura permite modelar dependencias temporales de largo alcance y ha demostrado una mayor resiliencia frente al ruido ambiental, así como una menor dependencia de datos etiquetados extensos. No obstante, sigue siendo sensible a la configuración de hiperparámetros y requiere conjuntos de entrenamiento suficientemente representativos para alcanzar un rendimiento óptimo \cite{zhang2023ept}.
+
+Finalmente, ICAT-net representa una línea de investigación reciente enfocada en modelos livianos y eficientes, especialmente diseñados para operar en entornos con recursos limitados. Incorporando mecanismos de atención espacial, de coordenadas, y componentes transformers, ICAT-net logra mantener una precisión elevada en la detección de fases sísmicas, con una considerable reducción del costo computacional. Esta arquitectura resulta particularmente relevante para esta tesis, al alinearse con la visión de un sistema de alerta temprana distribuido, accesible y funcional en contextos de infraestructura limitada \cite{Bertino93}.
+
+La Tabla \ref{tab:trabajos_relacionados} resume los principales enfoques analizados, destacando sus contribuciones, limitaciones y grado de relevancia para esta investigación.
+
+\section{Tema 1: Metodo STA/LTA}
+
+El algoritmo STA/LTA (Short-Term Average / Long-Term Average) es uno de los métodos clásicos más ampliamente utilizados para la detección automática de eventos sísmicos, en particular para el picking de la primera llegada de la onda P. Su popularidad radica en su bajo costo computacional, facilidad de implementación, y su capacidad para operar en tiempo real, incluso en estaciones sísmicas remotas o portátiles con capacidades limitadas \cite{allen1978automatic}.
+
+El principio del método es relativamente simple: consiste en calcular en tiempo real dos promedios móviles sobre la señal sísmica filtrada —uno de corto plazo (STA) y otro de largo plazo (LTA)— y evaluar la razón entre ambos. El valor de STA se asocia con los cambios inmediatos o transitorios en la amplitud de la señal, mientras que el valor de LTA refleja el nivel promedio del ruido de fondo. Cuando la razón STA/LTA supera un umbral predefinido, se considera que ha ocurrido un cambio significativo en la señal, posiblemente asociado con el arribo de una fase sísmica \cite{allen1978automatic}.
+
+Formalmente, el algoritmo puede describirse con las siguientes expresiones:
+
+\begin{equation}
+     STA(t)=\frac{1}{N_{STA}}\sum_{i=0}^{N_{STA}-1}\left | x(t-i)\right |
+\end{equation}
+
+\begin{equation}
+     LTA(t)=\frac{1}{N_{LTA}}\sum_{i=0}^{N_{LTA}-1}\left | x(t-i)\right |
+\end{equation}
+
+\begin{equation}
+     R(t)=\frac{STA(t)}{LTA(t)}
+\end{equation}
+
+Donde $x(t)$ representa la amplitud absoluta de la señal sísmica en el tiempo $t$, $N_{\text{STA}}$ y $N_{\text{LTA}}$ son las longitudes de las ventanas de corto y largo plazo respectivamente, y $R(t)$ es la razón entre ambos promedios en el instante actual. Si $R(t)$ excede un umbral superior $\theta_{\text{on}}$, se activa un disparo (trigger); si cae por debajo de un umbral inferior $\theta_{\text{off}}$, se desactiva (detrigger).
+
+Este enfoque ha sido fundamental en el desarrollo de redes sísmicas portátiles y sistemas de adquisición de datos disparados, en los cuales no se graba continuamente toda la señal, sino únicamente cuando se detecta actividad significativa. Además, es ampliamente usado como algoritmo base en software de procesamiento en tiempo real, tanto para aplicaciones de weak-motion como de strong-motion.
+
+\subsection{Limitaciones del STA/LTA Clásico}
+
+A pesar de su utilidad comprobada, el método STA/LTA presenta varias limitaciones técnicas importantes:
+
+\begin{itemize}
+    \item Dependencia de umbrales empíricos: La elección de los umbrales $\theta_{\text{on}}$ y $\theta_{\text{off}}$ suele hacerse de manera manual, lo que introduce un componente subjetivo y reduce la generalización del algoritmo.
+    \item Sensibilidad al ruido: En entornos con baja relación señal-ruido (SNR), el método puede generar falsas alarmas debido a fluctuaciones de ruido o a ruidos transitorios de alta amplitud.
+    \item Falta de adaptabilidad: Un umbral óptimo para un tipo de señal puede ser completamente inadecuado para otra, especialmente en redes que combinan diferentes sensores o condiciones geológicas.
+    \item Pérdida de sensibilidad ante señales débiles: Si la ventana de largo plazo es demasiado grande o el umbral demasiado alto, el algoritmo puede omitir eventos sísmicos pequeños o lejanos.
+
+\end{itemize}
+
+Estas limitaciones han impulsado una serie de propuestas orientadas a mejorar el rendimiento del método STA/LTA, tanto desde el punto de vista matemático como desde la integración con métricas estadísticas o enfoques de aprendizaje automático.
+
+\subsection{Relevancia para esta Tesis}
+
+En el marco de esta tesis, el método STA/LTA se utiliza como referencia comparativa para evaluar el desempeño de modelos modernos de detección de fases sísmicas. Si bien se reconoce que los métodos basados en aprendizaje profundo —como PhaseNet, EQTransformer o ICAT-net— ofrecen niveles superiores de precisión, su implementación puede no ser viable en escenarios con recursos limitados.
+
+Las mejoras recientes al algoritmo STA/LTA permiten extender su aplicabilidad a nuevas condiciones, brindando una alternativa viable para redes sísmicas de bajo costo, sistemas de alerta temprana distribuidos o estaciones en regiones aisladas. Además, su bajo requerimiento de memoria y capacidad de respuesta rápida lo convierten en una base metodológica sólida desde la cual comparar y contrastar enfoques más complejos.
+
+Si bien estos métodos clásicos han demostrado ser efectivos, presentan algunas limitaciones. Por ejemplo, el método STA/LTA puede ser sensible a ruido de fondo y cambios bruscos de amplitud en la señal, mientras que el método AIC puede tener dificultades para identificar la onda P en entornos con baja relación señal-ruido (SNR) \cite{kalkan2016automatic}\cite{shang2018enhancing}.
+
+
+\section{Metodos Basados en Aprendizaje Profundo}
+
+\subsection{Tema 2: Metodos Basados en Redes Neuronales Convolucionales}
+
+Las Redes Neuronales Convolucionales (CNN, por sus siglas en inglés) son una clase de modelos de aprendizaje profundo diseñados específicamente para procesar datos con una estructura de grilla, como imágenes, señales temporales o datos espaciales. Su arquitectura se inspira en el funcionamiento del sistema visual humano, donde las neuronas responden a estímulos en regiones específicas del campo visual. En el contexto de señales sísmicas, las CNN han demostrado ser herramientas poderosas para la detección y clasificación de fases sísmicas, como las ondas P y S, debido a su capacidad para extraer características jerárquicas y relevantes de los datos.
+
+\subsubsection{Arquitectura Básica de una CNN}
+
+Una CNN típica consta de las siguientes capas principales:
+
+\begin{itemize}
+     \item \textbf{Capas Convolucionales:} Estas capas aplican filtros (kernels) sobre la entrada para extraer características locales. La operación de convolución se define como:
+     \begin{equation}
+          (f * g)(t) = \sum_{i} f(i) \cdot g(t - i)
+     \end{equation}
+     donde $f$ es la señal de entrada, $g$ es el filtro, y $t$ es el índice temporal. En el caso de señales sísmicas, los filtros pueden aprender patrones característicos asociados con las ondas P y S, como cambios abruptos en la amplitud o frecuencias específicas.
+
+     \item \textbf{Capas de Pooling:} Estas capas reducen la dimensionalidad de las características extraídas, preservando la información más relevante. El pooling más común es el \textit{max-pooling}, que selecciona el valor máximo en una ventana:
+     \begin{equation}
+          y(t) = \max_{i \in \text{ventana}} x(t + i)
+     \end{equation}
+     Esto ayuda a hacer el modelo más robusto frente a pequeñas variaciones en la señal.
+
+     \item \textbf{Capas Completamente Conectadas:} Estas capas conectan todas las neuronas de una capa con las de la siguiente, permitiendo la combinación de características extraídas para realizar tareas como clasificación o regresión.
+
+     \item \textbf{Funciones de Activación:} Las funciones no lineales, como ReLU (\textit{Rectified Linear Unit}), se aplican después de cada capa convolucional para introducir no linealidades en el modelo:
+     \begin{equation}
+          \text{ReLU}(x) = \max(0, x)
+     \end{equation}
+\end{itemize}
+
+\subsubsection{Uso de CNN en la Detección de Ondas P y S}
+
+En el contexto de la detección de ondas sísmicas, las CNN son particularmente útiles debido a su capacidad para identificar patrones complejos en los datos temporales. Las ondas P, al ser las primeras en llegar, presentan características distintivas como un aumento abrupto en la amplitud y cambios en la frecuencia. Las ondas S, por otro lado, tienen una llegada más tardía y frecuencias diferentes. Las CNN pueden aprender estas diferencias automáticamente a partir de los datos de entrenamiento.
+
+\subsubsection{Ventajas de las CNN en el Picking Sísmico}
+
+El \textit{picking} de fases sísmicas, que consiste en identificar el tiempo exacto de llegada de las ondas P y S, es una tarea crítica en la sismología. Las CNN ofrecen varias ventajas en este contexto:
+
+\begin{itemize}
+     \item \textbf{Robustez frente al ruido:} Las CNN pueden aprender a ignorar el ruido de fondo y centrarse en las características relevantes de la señal, lo que es crucial en entornos con baja relación señal-ruido (SNR).
+     \item \textbf{Generalización:} Una vez entrenadas, las CNN pueden aplicarse a diferentes tipos de señales y condiciones geológicas sin necesidad de ajustes manuales.
+     \item \textbf{Automatización:} Las CNN eliminan la necesidad de definir manualmente características o umbrales, como en los métodos clásicos (e.g., STA/LTA), lo que reduce la subjetividad y mejora la reproducibilidad.
+     \item \textbf{Precisión Temporal:} Gracias a su capacidad para modelar patrones locales y globales, las CNN pueden identificar con alta precisión el instante exacto de inicio de las ondas sísmicas.
+\end{itemize}
+
+\subsubsection{Modelos Basados en CNN para Picking Sísmico}
+
+Existen varios modelos basados en CNN diseñados específicamente para la detección de fases sísmicas. Por ejemplo:
+
+\begin{itemize}
+     \item \textbf{PhaseNet:} Este modelo utiliza una arquitectura convolucional profunda para detectar automáticamente las fases P y S en señales sísmicas. Su diseño permite capturar tanto características locales como globales, logrando una alta precisión incluso en condiciones de ruido elevado.
+     \item \textbf{XTF-CNN:} Este modelo combina CNN con transformadas de Fourier para mejorar la detección en señales con características espectrales complejas.
+     \item \textbf{EQTransformer:} Aunque es un modelo híbrido, incorpora CNN en su arquitectura para extraer características jerárquicas antes de pasar la información a capas LSTM.
+\end{itemize}
+
+Finalmente, las CNN representan una herramienta versátil para el análisis de señales sísmicas, ofreciendo mejoras significativas en la detección y el picking de ondas P y S en comparación con los métodos tradicionales. Su capacidad para aprender automáticamente características relevantes y su robustez frente al ruido las convierten en una opción ideal para sistemas de alerta temprana y monitoreo sísmico.
+
+\subsection{Tema 3: Métodos Basados en Redes Transformer}
+
+Las Redes Transformer representan un avance significativo en el campo del aprendizaje profundo, especialmente en tareas que requieren modelar dependencias de largo alcance en datos secuenciales. Originalmente introducidas en el contexto del procesamiento de lenguaje natural (NLP) \cite{vaswani2017attention}, estas arquitecturas han demostrado ser altamente efectivas en una amplia gama de aplicaciones, incluyendo la detección y clasificación de señales sísmicas. En este apartado, se describe detalladamente el funcionamiento de las Redes Transformer y su aplicabilidad en la detección de ondas P y S.
+
+\subsubsection{Arquitectura de las Redes Transformer}
+
+La arquitectura Transformer se basa en el mecanismo de atención, que permite al modelo enfocarse en diferentes partes de la entrada para capturar relaciones contextuales. A continuación, se describen los componentes principales de esta arquitectura:
+
+\begin{itemize}
+     \item \textbf{Mecanismo de Atención Escalonada (Self-Attention):} Este mecanismo calcula la importancia relativa de cada elemento en la secuencia con respecto a los demás. Formalmente, dado un conjunto de vectores de entrada $X = \{x_1, x_2, \dots, x_n\}$, el mecanismo de atención se define como:
+     \begin{equation}
+          \text{Atención}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+     \end{equation}
+     donde $Q$, $K$, y $V$ son las matrices de consulta (\textit{query}), clave (\textit{key}) y valor (\textit{value}), respectivamente, derivadas de $X$ mediante transformaciones lineales, y $d_k$ es la dimensión de las claves. Este mecanismo permite al modelo identificar patrones relevantes en diferentes partes de la señal sísmica.
+
+     \item \textbf{Capas de Atención Multi-Cabeza (Multi-Head Attention):} Para capturar diferentes tipos de relaciones en la señal, el Transformer utiliza múltiples cabezas de atención, cada una enfocándose en diferentes aspectos de la entrada. La salida de estas cabezas se combina y pasa a través de una transformación lineal:
+     \begin{equation}
+          \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)W^O
+     \end{equation}
+     donde $\text{head}_i = \text{Atención}(QW_i^Q, KW_i^K, VW_i^V)$ y $W^O$ es una matriz de proyección.
+
+     \item \textbf{Capas Feed-Forward:} Después de la atención, cada posición en la secuencia pasa por una red neuronal completamente conectada, que introduce no linealidades y mejora la capacidad de representación del modelo:
+     \begin{equation}
+          \text{FFN}(x) = \text{ReLU}(xW_1 + b_1)W_2 + b_2
+     \end{equation}
+
+     \item \textbf{Codificación Posicional:} Dado que el Transformer no tiene una estructura recurrente o convolucional, se utiliza una codificación posicional para incorporar información sobre el orden de los elementos en la secuencia. Esto se logra mediante funciones sinusoidales:
+     \begin{equation}
+          \text{PE}(pos, 2i) = \sin\left(\frac{pos}{10000^{2i/d}}\right), \quad \text{PE}(pos, 2i+1) = \cos\left(\frac{pos}{10000^{2i/d}}\right)
+     \end{equation}
+     donde $pos$ es la posición y $i$ es la dimensión.
+
+\end{itemize}
+
+\subsubsection{Aplicación de Redes Transformer en la Detección de Ondas P y S}
+
+En el contexto de la detección de ondas sísmicas, las Redes Transformer ofrecen varias ventajas clave:
+
+\begin{itemize}
+     \item \textbf{Modelado de Dependencias de Largo Alcance:} Las señales sísmicas suelen contener patrones que se extienden a lo largo de múltiples ventanas temporales. El mecanismo de atención permite al Transformer capturar estas relaciones de manera eficiente, mejorando la detección de características relevantes asociadas con las ondas P y S.
+
+     \item \textbf{Robustez frente al Ruido:} Gracias a su capacidad para enfocar la atención en partes específicas de la señal, el Transformer puede ignorar el ruido de fondo y centrarse en las características distintivas de las ondas sísmicas, incluso en condiciones de baja relación señal-ruido (SNR).
+
+     \item \textbf{Generalización:} Los Transformers pueden adaptarse a diferentes tipos de señales y condiciones geológicas sin necesidad de ajustes manuales, lo que los hace ideales para redes sísmicas heterogéneas.
+
+     \item \textbf{Capacidad Multitarea:} Al ser una arquitectura flexible, los Transformers pueden realizar múltiples tareas simultáneamente, como la detección de ondas P y S, la clasificación de eventos sísmicos y la estimación de parámetros asociados.
+
+\end{itemize}
+
+\subsubsection{Modelos Basados en Transformers para Picking Sísmico}
+
+En los últimos años, se han desarrollado varios modelos basados en Transformers específicamente diseñados para el análisis de señales sísmicas. Algunos ejemplos destacados incluyen:
+
+\begin{itemize}
+     \item \textbf{TransQuake:} Este modelo utiliza una arquitectura Transformer para detectar fases sísmicas en señales con ruido elevado. Su capacidad para modelar dependencias temporales de largo alcance lo hace particularmente efectivo en entornos complejos \cite{zhang2023ept}.
+
+     \item \textbf{ICAT-net:} Aunque es un modelo híbrido, incorpora componentes basados en Transformers junto con mecanismos de atención espacial y de coordenadas, logrando un equilibrio entre precisión y eficiencia computacional.
+
+     \item \textbf{EPT (Earthquake Phase Transformer):} Este modelo combina Transformers con técnicas de preprocesamiento avanzadas para mejorar la detección de ondas P y S en redes sísmicas distribuidas.
+
+\end{itemize}
+
+\subsubsection{Ventajas y Limitaciones de los Transformers en la Sismología}
+
+Si bien los Transformers ofrecen numerosas ventajas, también presentan algunas limitaciones que deben considerarse:
+
+\begin{itemize}
+     \item \textbf{Requerimientos Computacionales:} Los Transformers suelen ser más costosos en términos de memoria y tiempo de cómputo en comparación con métodos clásicos o basados en CNN, lo que puede limitar su implementación en dispositivos embebidos o redes de bajo consumo.
+
+     \item \textbf{Sensibilidad a los Hiperparámetros:} El rendimiento de los Transformers depende en gran medida de la configuración de hiperparámetros, como el número de cabezas de atención, la profundidad de la red y el tamaño de las ventanas de entrada.
+
+     \item \textbf{Dependencia de Datos de Entrenamiento:} Para alcanzar un rendimiento óptimo, los Transformers requieren conjuntos de datos de entrenamiento grandes y representativos, lo que puede ser un desafío en regiones con poca cobertura sísmica.
+
+\end{itemize}
+
+\subsubsection{Relevancia para esta Tesis}
+
+En el marco de esta investigación, los Transformers representan una herramienta prometedora para mejorar la detección automática de ondas P y S en sistemas de alerta temprana. Su capacidad para modelar relaciones complejas en las señales sísmicas y su robustez frente al ruido los convierten en una opción ideal para redes distribuidas y entornos con recursos limitados. Además, su flexibilidad arquitectónica permite explorar enfoques híbridos que combinen lo mejor de los métodos clásicos y modernos, como se ejemplifica en modelos como ICAT-net.
+
+En conclusión, las Redes Transformer ofrecen un enfoque innovador y efectivo para abordar los desafíos asociados con la detección de fases sísmicas, abriendo nuevas posibilidades para el desarrollo de sistemas de monitoreo sísmico más precisos y accesibles.
+
