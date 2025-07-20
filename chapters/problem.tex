@@ -1,4 +1,4 @@
-\chapter{Marco Teorico}
+\chapter{Marco Teorico}\label{problem}
 
 La detección precisa y oportuna de la onda P es uno de los pilares fundamentales para el desarrollo de sistemas de alerta temprana ante sismos (EEWS, por sus siglas en inglés). Históricamente, se ha recurrido a métodos clásicos como el algoritmo Short-Term Average / Long-Term Average (STA/LTA) y el Akaike Information Criterion (AIC) debido a su simplicidad, bajo costo computacional y rápida capacidad de respuesta. Estas características los han hecho adecuados para redes sísmicas de bajo presupuesto, estaciones en regiones aisladas o dispositivos de monitoreo con recursos limitados.
 
@@ -194,9 +194,177 @@ Si bien los Transformers ofrecen numerosas ventajas, también presentan algunas 
 
 \end{itemize}
 
+\subsection{Tema 4: Métodos Basados en LSTM para Detección de Señales Sísmicas P y S}
+
+Las Redes Neuronales de Memoria a Largo y Corto Plazo (LSTM, por sus siglas en inglés) son una variante de las Redes Neuronales Recurrentes (RNN) diseñadas específicamente para abordar problemas relacionados con la dependencia temporal en datos secuenciales. Introducidas por Hochreiter y Schmidhuber en 1997 \cite{hochreiter1997long}, las LSTM han demostrado ser altamente efectivas en tareas que requieren modelar relaciones de largo alcance en secuencias temporales, como el procesamiento de lenguaje natural, la predicción de series temporales y, más recientemente, la detección de señales sísmicas.
+
+\subsubsection{Teoría de las Redes LSTM}
+
+El principal desafío de las RNN clásicas es su incapacidad para manejar dependencias de largo plazo debido al problema del desvanecimiento o explosión del gradiente durante el entrenamiento. Las LSTM resuelven este problema mediante una arquitectura única que incorpora una celda de memoria y mecanismos de control denominados puertas (\textit{gates}), que regulan el flujo de información dentro y fuera de la celda. A continuación, se describen los componentes principales de una celda LSTM:
+
+\begin{itemize}
+    \item \textbf{Puerta de Olvido (\textit{Forget Gate}):} Determina qué información de la celda de memoria debe descartarse. Se calcula como:
+    \begin{equation}
+        f_t = \sigma(W_f \cdot [h_{t-1}, x_t] + b_f)
+    \end{equation}
+    donde $x_t$ es la entrada en el tiempo $t$, $h_{t-1}$ es el estado oculto del tiempo anterior, $W_f$ y $b_f$ son los pesos y sesgos de la puerta, y $\sigma$ es la función sigmoide.
+
+    \item \textbf{Puerta de Entrada (\textit{Input Gate}):} Decide qué nueva información debe almacenarse en la celda de memoria. Se calcula en dos pasos:
+    \begin{equation}
+        i_t = \sigma(W_i \cdot [h_{t-1}, x_t] + b_i)
+    \end{equation}
+    \begin{equation}
+        \tilde{C}_t = \tanh(W_C \cdot [h_{t-1}, x_t] + b_C)
+    \end{equation}
+    donde $i_t$ es la activación de la puerta de entrada y $\tilde{C}_t$ es la nueva información candidata para la celda.
+
+    \item \textbf{Actualización de la Celda de Memoria:} La celda de memoria se actualiza combinando la información retenida y la nueva información:
+    \begin{equation}
+        C_t = f_t \cdot C_{t-1} + i_t \cdot \tilde{C}_t
+    \end{equation}
+
+    \item \textbf{Puerta de Salida (\textit{Output Gate}):} Controla qué parte de la información de la celda de memoria se utiliza para generar el estado oculto actual:
+    \begin{equation}
+        o_t = \sigma(W_o \cdot [h_{t-1}, x_t] + b_o)
+    \end{equation}
+    \begin{equation}
+        h_t = o_t \cdot \tanh(C_t)
+    \end{equation}
+\end{itemize}
+
+Gracias a esta arquitectura, las LSTM pueden retener información relevante durante largos periodos de tiempo, lo que las hace ideales para analizar señales sísmicas, donde las características de interés pueden estar separadas por intervalos temporales significativos.
+
+\subsubsection{Funcionamiento de las LSTM en la Detección de Ondas Sísmicas}
+
+En el contexto de la detección de ondas sísmicas P y S, las LSTM se utilizan para modelar la evolución temporal de las señales sísmicas y capturar patrones característicos asociados con las fases sísmicas. El flujo de trabajo típico para aplicar LSTM en esta tarea incluye los siguientes pasos:
+
+\begin{enumerate}
+    \item \textbf{Preprocesamiento de la Señal:} Las señales sísmicas se filtran y normalizan para eliminar ruido de fondo y resaltar las características relevantes. En algunos casos, se aplican técnicas de transformación, como la transformada de Fourier o la transformada wavelet, para extraer representaciones espectrales.
+
+    \item \textbf{Segmentación de la Señal:} La señal se divide en ventanas temporales superpuestas o no superpuestas, que se utilizan como entradas para la red LSTM. Cada ventana contiene información suficiente para capturar las características de las ondas P y S.
+
+    \item \textbf{Entrenamiento del Modelo:} La red LSTM se entrena utilizando un conjunto de datos etiquetados, donde cada ventana está asociada con una etiqueta que indica la presencia o ausencia de ondas P o S. La función de pérdida típica es la entropía cruzada para tareas de clasificación o el error cuadrático medio para tareas de regresión.
+
+    \item \textbf{Inferencia:} Una vez entrenada, la red LSTM se utiliza para analizar nuevas señales sísmicas y predecir la llegada de ondas P y S. El modelo genera una probabilidad o un marcador temporal que indica el instante de inicio de cada fase sísmica.
+\end{enumerate}
+
+\subsubsection{Ventajas de las LSTM en el Picking Sísmico}
+
+El uso de LSTM para la detección de ondas sísmicas ofrece varias ventajas en comparación con los métodos clásicos y otros enfoques basados en aprendizaje profundo:
+
+\begin{itemize}
+    \item \textbf{Modelado de Dependencias Temporales:} Las LSTM son capaces de capturar relaciones de largo alcance en las señales sísmicas, lo que es crucial para identificar patrones complejos asociados con las ondas P y S.
+
+    \item \textbf{Robustez frente al Ruido:} Gracias a su capacidad para filtrar información irrelevante, las LSTM pueden operar eficazmente en entornos con baja relación señal-ruido (SNR).
+
+    \item \textbf{Adaptabilidad:} Las LSTM pueden adaptarse a diferentes tipos de señales y condiciones geológicas sin necesidad de ajustes manuales, lo que las hace ideales para redes sísmicas heterogéneas.
+
+    \item \textbf{Automatización:} A diferencia de los métodos clásicos, como STA/LTA, las LSTM no requieren la definición manual de umbrales o características, lo que reduce la subjetividad y mejora la reproducibilidad.
+
+    \item \textbf{Capacidad Multitarea:} Las LSTM pueden realizar múltiples tareas simultáneamente, como la detección de ondas P y S, la clasificación de eventos sísmicos y la estimación de parámetros asociados.
+\end{itemize}
+
+\subsubsection{Modelos Basados en LSTM para Picking Sísmico}
+
+En los últimos años, se han desarrollado varios modelos basados en LSTM específicamente diseñados para la detección de fases sísmicas. Algunos ejemplos destacados incluyen:
+
+\begin{itemize}
+    \item \textbf{PhaseLSTM:} Este modelo utiliza una arquitectura LSTM profunda para detectar automáticamente las fases P y S en señales sísmicas. Su diseño permite capturar tanto características locales como globales, logrando una alta precisión incluso en condiciones de ruido elevado.
+
+    \item \textbf{Hybrid-LSTM-CNN:} Este modelo combina LSTM con redes convolucionales (CNN) para aprovechar las fortalezas de ambas arquitecturas. Las CNN se utilizan para extraer características espaciales, mientras que las LSTM modelan las dependencias temporales.
+
+    \item \textbf{Seq2Seq-LSTM:} Inspirado en los modelos de traducción automática, este enfoque utiliza una arquitectura de codificador-decodificador basada en LSTM para predecir directamente los tiempos de llegada de las ondas P y S.
+\end{itemize}
+
+\subsubsection{Limitaciones y Desafíos de las LSTM}
+
+A pesar de sus numerosas ventajas, las LSTM también presentan algunas limitaciones que deben considerarse:
+
+\begin{itemize}
+    \item \textbf{Requerimientos Computacionales:} Las LSTM suelen ser más costosas en términos de memoria y tiempo de cómputo en comparación con métodos clásicos, lo que puede limitar su implementación en dispositivos embebidos o redes de bajo consumo.
+
+    \item \textbf{Dependencia de Datos de Entrenamiento:} Para alcanzar un rendimiento óptimo, las LSTM requieren conjuntos de datos de entrenamiento grandes y representativos, lo que puede ser un desafío en regiones con poca cobertura sísmica.
+
+    \item \textbf{Sensibilidad a la Configuración:} El rendimiento de las LSTM depende en gran medida de la configuración de hiperparámetros, como el tamaño de la celda, la tasa de aprendizaje y el tamaño de las ventanas de entrada.
+\end{itemize}
+
+\subsection{Modelos Híbridos y Avances Recientes}
+
+En los últimos años, los modelos híbridos han emergido como una solución prometedora para abordar las limitaciones de las arquitecturas individuales en la detección de fases sísmicas. Estos modelos combinan diferentes enfoques de aprendizaje profundo, como Redes Neuronales Convolucionales (CNN), Redes de Memoria a Largo y Corto Plazo (LSTM) y Transformers, para aprovechar las fortalezas de cada uno y mitigar sus debilidades. A continuación, se describen en detalle los principales enfoques híbridos y la teoría detrás de ellos.
+
+\subsubsection{Modelos Híbridos LSTM-CNN}
+
+Los modelos híbridos LSTM-CNN combinan la capacidad de las CNN para extraer características espaciales de las señales sísmicas con la habilidad de las LSTM para modelar dependencias temporales. Este enfoque se basa en la idea de que las CNN pueden identificar patrones locales en las señales, como cambios abruptos en la amplitud o frecuencias específicas, mientras que las LSTM pueden capturar la evolución temporal de estos patrones.
+
+\paragraph{Arquitectura Típica:}
+La arquitectura de un modelo híbrido LSTM-CNN generalmente incluye los siguientes componentes:
+\begin{itemize}
+    \item \textbf{Capas Convolucionales:} Estas capas procesan la señal de entrada para extraer características locales. Por ejemplo, en una señal sísmica, las capas convolucionales pueden identificar patrones asociados con las ondas P y S.
+    \item \textbf{Capas de Pooling:} Reducen la dimensionalidad de las características extraídas, preservando la información más relevante y mejorando la eficiencia computacional.
+    \item \textbf{Capas LSTM:} Reciben las características extraídas por las CNN y modelan las dependencias temporales entre ellas. Esto permite al modelo capturar la relación entre eventos sísmicos consecutivos.
+    \item \textbf{Capas Completamente Conectadas:} Estas capas combinan la información procesada por las CNN y las LSTM para realizar tareas como clasificación o regresión.
+\end{itemize}
+
+\paragraph{Teoría Detrás de la Sinergia:}
+La combinación de CNN y LSTM se fundamenta en la complementariedad de sus capacidades. Las CNN son excelentes para procesar datos estructurados en grillas, como imágenes o señales temporales, mientras que las LSTM están diseñadas para manejar secuencias y capturar relaciones de largo alcance. Al combinar ambas arquitecturas, los modelos híbridos pueden analizar tanto las características locales como las globales de las señales sísmicas, mejorando la precisión y la robustez.
+
+\subsubsection{Modelos Híbridos Transformer-CNN}
+
+Los modelos híbridos Transformer-CNN integran la capacidad de los Transformers para modelar dependencias de largo alcance con la habilidad de las CNN para extraer características locales. Este enfoque es particularmente útil en señales sísmicas, donde los patrones relevantes pueden estar distribuidos a lo largo de múltiples ventanas temporales.
+
+\paragraph{Arquitectura Típica:}
+La arquitectura de un modelo híbrido Transformer-CNN incluye:
+\begin{itemize}
+    \item \textbf{Capas Convolucionales:} Procesan la señal de entrada para extraer características locales, como cambios en la amplitud o frecuencias específicas.
+    \item \textbf{Capas de Atención Multi-Cabeza:} Estas capas, propias de los Transformers, modelan las relaciones contextuales entre diferentes partes de la señal, permitiendo al modelo enfocarse en las regiones más relevantes.
+    \item \textbf{Codificación Posicional:} Incorpora información sobre el orden temporal de los datos, lo que es crucial para analizar señales sísmicas.
+    \item \textbf{Capas Completamente Conectadas:} Combinan la información procesada por las CNN y los Transformers para realizar predicciones.
+\end{itemize}
+
+\paragraph{Ventajas del Enfoque Híbrido:}
+La integración de Transformers y CNN permite al modelo capturar tanto patrones locales como relaciones de largo alcance en las señales sísmicas. Esto es especialmente útil en entornos con ruido elevado, donde los patrones relevantes pueden estar dispersos.
+
+\subsubsection{Modelos Híbridos LSTM-Transformer}
+
+Los modelos híbridos LSTM-Transformer combinan la capacidad de las LSTM para modelar dependencias temporales con la habilidad de los Transformers para capturar relaciones contextuales de largo alcance. Este enfoque es ideal para analizar señales sísmicas complejas, donde las características relevantes pueden estar separadas por intervalos temporales significativos.
+
+\paragraph{Arquitectura Típica:}
+La arquitectura de un modelo híbrido LSTM-Transformer incluye:
+\begin{itemize}
+    \item \textbf{Capas LSTM:} Procesan la señal de entrada para capturar dependencias temporales a corto y mediano plazo.
+    \item \textbf{Capas de Atención Multi-Cabeza:} Modelan relaciones de largo alcance entre diferentes partes de la señal, permitiendo al modelo identificar patrones globales.
+    \item \textbf{Capas Feed-Forward:} Introducen no linealidades y mejoran la capacidad de representación del modelo.
+    \item \textbf{Capas Completamente Conectadas:} Combinan la información procesada por las LSTM y los Transformers para realizar predicciones.
+\end{itemize}
+
+\paragraph{Teoría Detrás de la Combinación:}
+La combinación de LSTM y Transformers se basa en la idea de que las LSTM son efectivas para modelar dependencias temporales locales, mientras que los Transformers son más adecuados para capturar relaciones globales. Al integrar ambas arquitecturas, los modelos híbridos pueden analizar señales sísmicas de manera más completa y precisa.
+
+\subsubsection{Transfer Learning en Modelos Híbridos}
+
+El aprendizaje por transferencia (\textit{Transfer Learning}) es una técnica que permite reutilizar modelos preentrenados en grandes conjuntos de datos para tareas específicas de detección sísmica. En el contexto de modelos híbridos, esta técnica puede mejorar significativamente el rendimiento y reducir la necesidad de datos de entrenamiento extensos.
+
+\paragraph{Aplicación en Modelos Híbridos:}
+En los modelos híbridos, el aprendizaje por transferencia se utiliza para inicializar las capas convolucionales o de atención con pesos preentrenados en tareas relacionadas, como la clasificación de imágenes o el procesamiento de lenguaje natural. Esto permite al modelo aprovechar características previamente aprendidas y adaptarlas a la detección de fases sísmicas.
+
+\paragraph{Ventajas del Transfer Learning:}
+\begin{itemize}
+    \item \textbf{Reducción de Datos de Entrenamiento:} Permite entrenar modelos efectivos con conjuntos de datos más pequeños.
+    \item \textbf{Mejora de la Generalización:} Ayuda al modelo a generalizar mejor en diferentes condiciones geológicas y tipos de señales.
+    \item \textbf{Aceleración del Entrenamiento:} Reduce el tiempo necesario para entrenar el modelo desde cero.
+\end{itemize}
+
+\subsubsection{Avances Recientes en Modelos Híbridos}
+
+En los últimos años, se han desarrollado varias innovaciones en el diseño de modelos híbridos para la detección de fases sísmicas. Algunos de los avances más destacados incluyen:
+
+\begin{itemize}
+    \item \textbf{Mecanismos de Atención Jerárquica:} Permiten al modelo enfocarse en diferentes niveles de granularidad, desde patrones locales hasta relaciones globales.
+    \item \textbf{Integración Multimodal:} Combina datos de múltiples fuentes, como registros sísmicos, imágenes de satélite y datos geológicos, para mejorar la precisión de la detección.
+    \item \textbf{Optimización de Hiperparámetros:} Utiliza técnicas avanzadas, como la búsqueda bayesiana, para encontrar configuraciones óptimas de hiperparámetros en modelos híbridos.
+    \item \textbf{Implementación en Tiempo Real:} Se están desarrollando modelos híbridos optimizados para operar en tiempo real, lo que es crucial para sistemas de alerta temprana.
+\end{itemize}
+
 \subsubsection{Relevancia para esta Tesis}
 
-En el marco de esta investigación, los Transformers representan una herramienta prometedora para mejorar la detección automática de ondas P y S en sistemas de alerta temprana. Su capacidad para modelar relaciones complejas en las señales sísmicas y su robustez frente al ruido los convierten en una opción ideal para redes distribuidas y entornos con recursos limitados. Además, su flexibilidad arquitectónica permite explorar enfoques híbridos que combinen lo mejor de los métodos clásicos y modernos, como se ejemplifica en modelos como ICAT-net.
-
-En conclusión, las Redes Transformer ofrecen un enfoque innovador y efectivo para abordar los desafíos asociados con la detección de fases sísmicas, abriendo nuevas posibilidades para el desarrollo de sistemas de monitoreo sísmico más precisos y accesibles.
-
+Los modelos híbridos representan una herramienta poderosa para abordar los desafíos asociados con la detección de fases sísmicas en entornos complejos. Su capacidad para combinar las fortalezas de diferentes arquitecturas de aprendizaje profundo los convierte en una opción ideal para sistemas de alerta temprana y monitoreo sísmico. En el marco de esta tesis, se explorarán enfoques híbridos que integren CNN, LSTM y Transformers, con el objetivo de desarrollar un modelo robusto, eficiente y adaptable a diferentes condiciones operativas.

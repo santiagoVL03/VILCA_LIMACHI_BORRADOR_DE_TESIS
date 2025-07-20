@@ -72,5 +72,6 @@
 \backcite {allen1978automatic}{{19}{3.1}{section.3.1}}
 \backcite {kalkan2016automatic}{{21}{3.1.2}{subsection.3.1.2}}
 \backcite {shang2018enhancing}{{21}{3.1.2}{subsection.3.1.2}}
-\backcite {vaswani2017attention}{{23}{3.2.3}{subsection.3.2.3}}
-\backcite {zhang2023ept}{{25}{3.2.3}{section*.16}}
+\backcite {vaswani2017attention}{{23}{3.2.2}{subsection.3.2.2}}
+\backcite {zhang2023ept}{{24}{3.2.2}{section*.16}}
+\backcite {hochreiter1997long}{{25}{3.2.3}{subsection.3.2.3}}
